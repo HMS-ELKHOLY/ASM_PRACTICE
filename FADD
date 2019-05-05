@@ -1,0 +1,100 @@
+.data
+maskF:0x007FFFFF
+maskEX:0x7F800000
+maskSign:0x80000000
+maskIMPLICIT :0x00800000
+atest1: .word 0x3F800000 # 1.0
+btest1: .word 0x3F800000 # 1.0
+                         # add more test vectors here
+atest2: .word  0x40000000   #2.0
+btest2: .word  0x3f800000 # 1.0
+atest3: .word  0x40000000# 2.0
+btest3: .word  0x40600000# 3.5
+atest4: .word  0x3f010000# 0.50390625
+btest4: .word  0x477fffb0 # 65535.6875
+
+
+R:.word 0
+.text
+lw $s0  maskF
+lw $s1  maskEX
+lw $s2  maskSign
+lw $s3  maskIMPLICIT
+.global main			# define main as a global label
+
+.set noreorder			# don't let the assembler reorder instructions
+# Test the floating point add
+main:	
+		lw $a0, atest1	# first operand
+		lw $a1, btest1	# second operand
+		jal flpadd		# do the addition, look for result in $v0
+		nop				# branch delay slot
+						# insert more tests here
+		lw $a0, atest2	# first operand
+		lw $a1, btest2	# second operand
+		jal flpadd		# do the addition, look for result in $v0
+		nop				# branch delay slot
+		lw $a0, atest3	# first operand
+		lw $a1, btest3	# second operand
+		jal flpadd		# do the addition, look for result in $v0
+		nop				# branch delay slot
+		lw $a0, atest4	# first operand
+		lw $a1, btest4	# second operand
+		jal flpadd		# do the addition, look for result in $v0
+		nop				# branch delay slot
+infiniteloop:
+
+		j infiniteloop	# wait forever
+
+		nop				# branch delay slot
+flpadd:
+##CUSTOMIZE NUMBER A
+and $t0 $a0 $s0 #fraction
+or $t0 $t0 $s3 ##add implicit bit
+ 
+and $t1 $a0 $s1 #exP 
+srl $t1 $t1 23
+and $t2 $a0 $s2 #SIGN 
+
+##CUSTOMIZE NUMBER B
+and $t3 $a1 $s0 #fraction 
+or $t3 $t3 $s3 ##add implicit bit
+ 
+and $t4 $a1 $s1 #exP 
+srl $t4 $t4 23
+and $t5 $a1 $s2 #SIGN 
+addi $v0 $t1 0 
+ADD:
+##lowest number will be shifted right by +ve difference between exponents
+
+bgt $t1 $t4  modifyEXP1
+bgt $t4 $t1  modifyEXP2
+RESUME:
+add $v1 $t0  $t3 ##save sum of fractions in V1
+add $t7 $t0  $t3 ##save sum of fractions in T7 
+srl $t7 $t7 24
+#srlv $v1 $v1 $t7
+add $v0 $v0 $t7
+srlv $v1 $v1 $t7 
+sll $v0 $v0 23
+and $v1 $v1 $s0
+or  $v1 $v0 $v1##final Result V1
+
+jr $ra
+
+modifyEXP1:
+sub $t7 $t1 $t4
+srlv $t3 $t3 $t7
+##V0=BIGGEST EXPONNENT
+addi $v0 $t1 0 
+j RESUME
+modifyEXP2:
+sub $t7 $t4 $t1
+srlv $t0 $t0 $t7
+##V0=BIGGEST EXPONNENT
+addi $v0 $t4 0
+j RESUME  
+
+
+
+
