@@ -1,6 +1,8 @@
 # Fayoum University 
-#Faculty of Engineering
-#Department of Computer and Systems
+
+## Faculty of Engineering
+
+### Department of Computer and Systems
 
 fibonaaci and floating point addition in MIPS assmbly 
 
